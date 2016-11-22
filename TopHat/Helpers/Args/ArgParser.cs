@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using TopHat.Models;
 
 namespace TopHat.Helpers
@@ -15,6 +17,8 @@ namespace TopHat.Helpers
 
             if (args.Length == 0)
                 return settings;
+
+            AllocateConsole();
 
             var p = new OptionSet() {
                     { "s|snippets=",     "snippet file (separated by '#' comments)", s => settings.FileName = s},
@@ -89,6 +93,86 @@ namespace TopHat.Helpers
             Console.WriteLine();
             Console.WriteLine("Options:");
             p.WriteOptionDescriptions(Console.Out);
+        }
+
+        /// <summary>
+        /// allocates a new console for the calling process.
+        /// </summary>
+        /// <returns>If the function succeeds, the return value is nonzero.
+        /// If the function fails, the return value is zero. 
+        /// To get extended error information, call Marshal.GetLastWin32Error.</returns>
+        [DllImport("kernel32", SetLastError = true)]
+        static extern bool AllocConsole();
+
+        /// <summary>
+        /// Attaches the calling process to the console of the specified process.
+        /// </summary>
+        /// <param name="dwProcessId">[in] Identifier of the process, usually will be ATTACH_PARENT_PROCESS</param>
+        /// <returns>If the function succeeds, the return value is nonzero.
+        /// If the function fails, the return value is zero. 
+        /// To get extended error information, call Marshal.GetLastWin32Error.</returns>
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool AttachConsole(uint dwProcessId);
+
+        /// <summary>Identifies the console of the parent of the current process as the console to be attached.
+        /// always pass this with AttachConsole in .NET for stability reasons and mainly because
+        /// I have NOT tested interprocess attaching in .NET so dont blame me if it doesnt work! </summary>
+        const uint ATTACH_PARENT_PROCESS = 0x0ffffffff;
+
+        /// <summary>
+        /// calling process is already attached to a console
+        /// </summary>
+        const int ERROR_ACCESS_DENIED = 5;
+
+        /// <summary>
+        /// Allocate a console if application started from within windows GUI. 
+        /// Detects the presence of an existing console associated with the application and
+        /// attaches itself to it if available.
+        /// </summary>
+        private static void AllocateConsole()
+        {
+            //
+            // the following should only be used in a non-console application type (C#)
+            // (since a console is allocated/attached already when you define a console app.. :) )
+            //
+
+            var attached = AttachConsole(ATTACH_PARENT_PROCESS);
+            var lastError = 0;
+            if (!attached)
+            {
+                lastError = Marshal.GetLastWin32Error();
+            }
+            else
+            {
+                //HACK
+                //Console.WriteLine("Attached to parent console.");
+            }
+
+            if (!attached && lastError == ERROR_ACCESS_DENIED)
+            //if (!AttachConsole(ATTACH_PARENT_PROCESS) && Marshal.GetLastWin32Error() == ERROR_ACCESS_DENIED)
+            {
+                //HACK:
+                //Log.WriteLine("Could not attach to parent process (access denied)");
+
+                // A console was not allocated, so we need to make one.
+                if (!AllocConsole())
+                {
+                    //Log.WriteLine("A console could not be allocated.");
+                    MessageBox.Show("A console could not be allocated, sorry!");
+                    throw new Exception("Console Allocation Failed");
+                }
+                else
+                {
+                    //Console.WriteLine("Is Attached, press a key...");
+                    //Console.WriteLine("Is Attached, press a key...");
+                    //Console.WriteLine("Is Attached, press a key...");
+                    //Console.WriteLine("Is Attached, press a key...");
+                    //Console.ReadKey(true);
+                    // you now may use the Console.xxx functions from .NET framework
+                    // and they will work as normal
+                }
+
+            }
         }
     }
 }
