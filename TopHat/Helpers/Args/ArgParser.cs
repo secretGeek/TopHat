@@ -22,7 +22,7 @@ namespace TopHat.Helpers
 
             var p = new OptionSet() {
                     { "s|snippets=",     "snippet file (separated by '#' comments)", s => settings.FileName = s},
-                    { "r|replacements=", "comma separated set of {ReplaceThis}`{WithThis} token pairs;", s => settings.Replacements = Replacement.CreateList(s)},
+                    { "r|replacements=", "comma separated set of {{ReplaceThis}}`{{WithThis}} token pairs", s => settings.Replacements = Replacement.CreateList(s)},
                     { "?|h|help",        "show this message and exit", v => settings.ShowHelp = v != null } };
 
             List<string> extra;
